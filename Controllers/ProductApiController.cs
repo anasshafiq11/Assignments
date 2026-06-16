@@ -60,7 +60,6 @@ namespace ProductManagementApp.Controllers
         public async Task<IActionResult> Create(ProductDto dto)
         {
             var product = _mapper.Map<Product>(dto);
-
             await _service.AddAsync(product);
 
             return Ok(new ApiResponse<Product>

@@ -2,11 +2,13 @@
 using Assignment2.Models;
 using Assignment2.Services.Interfaces;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 
 namespace ProductManagementApp.Controllers
 {
+    [Authorize]
     public class ProductController : Controller
     {
         private readonly IProductService _service;
@@ -78,6 +80,7 @@ namespace ProductManagementApp.Controllers
         }
 
         // GET: /Product/Delete/1
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var product = await _service.GetByIdAsync(id);
@@ -89,6 +92,7 @@ namespace ProductManagementApp.Controllers
         }
 
         // POST: /Product/DeleteConfirmed
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {

@@ -1,0 +1,16 @@
+﻿<h2>Email Confirmation</h2>
+
+<p>
+    Please confirm your email before logging in.
+</p>
+
+@if (TempData["ConfirmationLink"] != null)
+{
+    <p>
+        Confirmation Link:
+    </p>
+
+    <a href="@TempData["ConfirmationLink"]">
+        Confirm Email
+    </a>
+}

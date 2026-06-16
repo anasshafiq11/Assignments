@@ -1,7 +1,7 @@
 ﻿using Assignment2.Models;
 using Assignment2.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using ProductManagementApp.Data;
+using Assignment2.Data;
 
 
 namespace Assignment2.Services
