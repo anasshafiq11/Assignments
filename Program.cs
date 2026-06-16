@@ -1,12 +1,25 @@
 using Assignment2.Mapping;
 using Assignment2.Services;
 using Assignment2.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using ProductManagementApp.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+{
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString(
+            "DefaultConnection"));
+});
+
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddSingleton<IAppInfoService, AppInfoService>();
+builder.Services.AddTransient<IRequestTracker, RequestTracker>();
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
 builder.Services.AddEndpointsApiExplorer();

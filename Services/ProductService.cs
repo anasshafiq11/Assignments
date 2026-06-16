@@ -1,71 +1,58 @@
 ﻿using Assignment2.Models;
 using Assignment2.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using ProductManagementApp.Data;
 
 
 namespace Assignment2.Services
 {
     public class ProductService : IProductService
     {
-        private static List<Product> products = new()
-        {
-            new Product
-            {
-                Id = 1,
-                Name = "Laptop",
-                Price = 50000,
-                Quantity = 5
-            },
-            new Product
-            {
-                Id = 2,
-                Name = "Smartphone",
-                Price = 20000,
-                Quantity = 10
-            },
-             new Product
-            {
-                Id = 3,
-                Name = "Headphones",
-                Price = 5000,
-                Quantity = 15
-            }
+        private readonly ApplicationDbContext _context;
 
-        };
-
-        public List<Product> GetAll()
+        public ProductService(ApplicationDbContext context)
         {
-            return products;
+            _context = context;
         }
 
-        public Product GetById(int id)
+        public async Task<List<Product>> GetAllAsync()
         {
-            return products.FirstOrDefault(x => x.Id == id);
+            return await _context.Products.ToListAsync();
         }
 
-        public void Add(Product product)
+        public async Task<Product?> GetByIdAsync(int id)
         {
-            product.Id = products.Count + 1;
-            products.Add(product);
+            return await _context.Products
+                .FirstOrDefaultAsync(x => x.Id == id);
         }
 
-        public void Update(Product product)
+        public async Task<Product> AddAsync(Product product)
         {
-            var existing = GetById(product.Id);
+            _context.Products.Add(product);
 
-            if (existing != null)
-            {
-                existing.Name = product.Name;
-                existing.Price = product.Price;
-                existing.Quantity = product.Quantity;
-            }
+            await _context.SaveChangesAsync();
+
+            return product;
         }
 
-        public void Delete(int id)
+        public async Task UpdateAsync(Product product)
         {
-            var product = GetById(id);
+            _context.Products.Update(product);
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteAsync(int id)
+        {
+            var product =
+                await _context.Products.FindAsync(id);
 
             if (product != null)
-                products.Remove(product);
+            {
+                _context.Products.Remove(product);
+
+                await _context.SaveChangesAsync();
+            }
         }
     }
 }

@@ -5,14 +5,14 @@ namespace Assignment2.Services.Interfaces
     public interface IProductService
     {
 
-        public List<Product> GetAll();
+        Task<List<Product>> GetAllAsync();
 
-        public Product GetById(int id);
+        Task<Product?> GetByIdAsync(int id);
 
-        public void Add(Product product);
+        Task<Product> AddAsync(Product product);
 
-        public void Update(Product product);
+        Task UpdateAsync(Product product);
 
-        public void Delete(int id);
+        Task DeleteAsync(int id);
     };
 }

@@ -10,47 +10,57 @@ namespace ProductManagementApp.Controllers
     public class ProductController : Controller
     {
         private readonly IProductService _service;
+        private readonly IAppInfoService _appInfo;
+        private readonly IRequestTracker _requestTracker;
         private readonly IMapper _mapper;
 
         public ProductController(
             IProductService service,
+            IAppInfoService appInfo,
+            IRequestTracker requestTracker,
             IMapper mapper)
         {
             _service = service;
+            _appInfo = appInfo;
+            _requestTracker = requestTracker;
             _mapper = mapper;
         }
 
         // GET: /Product
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            var products = _service.GetAll();
+            ViewBag.ApplicationId = _appInfo.ApplicationId;
+            ViewBag.StartTime = _appInfo.StartTime;
+            ViewBag.RequestId = _requestTracker.RequestId;
+            var products = await _service.GetAllAsync();
+
             return View(products);
         }
 
         // GET: /Product/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
             return View();
         }
 
         // POST: /Product/Create
         [HttpPost]
-        public IActionResult Create(ProductDto dto)
+        public async Task<IActionResult> Create(ProductDto dto)
         {
             if (!ModelState.IsValid)
                 return View(dto);
 
             var product = _mapper.Map<Product>(dto);
 
-            _service.Add(product);
+            await _service.AddAsync(product);
 
             return RedirectToAction(nameof(Index));
         }
 
         // GET: /Product/Edit/1
-        public IActionResult Edit(int id)
+        public async Task<IActionResult> Edit(int id)
         {
-            var product = _service.GetById(id);
+            var product = await _service.GetByIdAsync(id);
 
             if (product == null)
                 return NotFound();
@@ -60,17 +70,17 @@ namespace ProductManagementApp.Controllers
 
         // POST: /Product/Edit
         [HttpPost]
-        public IActionResult Edit(Product product)
+        public async Task<IActionResult> Edit(Product product)
         {
-            _service.Update(product);
+            await _service.UpdateAsync(product);
 
             return RedirectToAction(nameof(Index));
         }
 
         // GET: /Product/Delete/1
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var product = _service.GetById(id);
+            var product = await _service.GetByIdAsync(id);
 
             if (product == null)
                 return NotFound();
@@ -80,17 +90,17 @@ namespace ProductManagementApp.Controllers
 
         // POST: /Product/DeleteConfirmed
         [HttpPost]
-        public IActionResult DeleteConfirmed(int id)
+        public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            _service.Delete(id);
+            await _service.DeleteAsync(id);
 
             return RedirectToAction(nameof(Index));
         }
 
         // GET: /Product/Details/1
-        public IActionResult Details(int id)
+        public async Task<IActionResult> Details(int id)
         {
-            var product = _service.GetById(id);
+            var product = await _service.GetByIdAsync(id);
 
             if (product == null)
                 return NotFound();
