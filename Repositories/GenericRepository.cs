@@ -45,7 +45,7 @@ namespace Assignment2.Repositories
 
         public IQueryable<T> Query()
         {
-            return _dbSet.AsQueryable();
+            return _dbSet.AsQueryable(); // you can chain LINQ filters onto it from outside the repository
         }
 
        

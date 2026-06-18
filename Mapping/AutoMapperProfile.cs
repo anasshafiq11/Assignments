@@ -12,8 +12,7 @@ namespace Assignment2.Mapping
         {
             CreateMap<ProductDto, Product>();
             CreateMap<Product, ProductDto>();
-            CreateMap<RegisterViewModel, ApplicationUser>()
-                .ForMember(dest => dest.UserName,
+            CreateMap<RegisterViewModel, ApplicationUser>().ForMember(dest => dest.UserName,
                     opt => opt.MapFrom(src => src.Email));
 
             CreateMap<InviteUserViewModel, ApplicationUser>();

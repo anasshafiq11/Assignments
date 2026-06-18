@@ -22,8 +22,7 @@ namespace Assignment2.Services
 
         public async Task<Product?> GetByIdAsync(int id)
         {
-            return await _context.Products
-                .FirstOrDefaultAsync(x => x.Id == id);
+            return await _context.Products.FirstOrDefaultAsync(x => x.Id == id);
         }
 
         public async Task<Product> AddAsync(Product product)

@@ -33,7 +33,7 @@ namespace Assignment2.Services
 
             using var smtpClient = new SmtpClient(_emailSettings.Host, _emailSettings.Port);
 
-            smtpClient.UseDefaultCredentials = false;
+            smtpClient.UseDefaultCredentials = false; // tells .NET not to use your local computer's Windows login data.
 
             smtpClient.Credentials = new NetworkCredential(_emailSettings.Email, _emailSettings.Password);
 

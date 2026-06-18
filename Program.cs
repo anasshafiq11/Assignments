@@ -36,13 +36,13 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
-builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>)); // typeof is used to specify the open generic type, and the DI container will resolve the closed generic types at runtime when needed.
+builder.Services.AddScoped<IUserService, UserService>(); // it is resolved per HTTP request, meaning a new instance will be created for each request and shared within that request. This is ideal for services that interact with the database or maintain state that should not be shared across requests.
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddSingleton<IAppInfoService, AppInfoService>();
-builder.Services.AddTransient<IRequestTracker, RequestTracker>();
+builder.Services.AddTransient<IRequestTracker, RequestTracker>(); // it is created each time it is requested. This is suitable for lightweight, stateless services that do not maintain any shared state and can be instantiated multiple times without issues.
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
 builder.Services.AddEndpointsApiExplorer();
@@ -51,8 +51,10 @@ builder.Services.AddSwaggerGen();
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.AccessDeniedPath = "/Account/AccessDenied";
-}); 
+});
 
+
+//  this is for JWT authentication, this is for token validation, it is used to validate the JWT token sent by the client in the Authorization header of HTTP requests. The token validation parameters specify how the token should be validated, including the issuer, audience, lifetime, and signing key. The signing key is used to verify the integrity and authenticity of the token, ensuring that it has not been tampered with or forged. The issuer and audience are used to ensure that the token was issued by a trusted authority and is intended for the correct audience. The lifetime validation ensures that the token has not expired and is still valid for use.
 builder.Services
     .AddAuthentication()
     .AddJwtBearer(options =>
@@ -77,6 +79,7 @@ builder.Services
                             builder.Configuration["Jwt:Key"]!))
             };
     });
+
 var app = builder.Build();
 
 
@@ -95,13 +98,13 @@ app.UseRouting();
 
 using (var scope = app.Services.CreateScope())
 {
-    await RoleSeeder.SeedRolesAsync(
-        scope.ServiceProvider);
+    await RoleSeeder.SeedRolesAsync(scope.ServiceProvider);
 }
 
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseMiddleware<ValidateUserMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
 
 

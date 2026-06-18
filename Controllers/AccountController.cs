@@ -120,8 +120,7 @@ namespace Assignment2.Controllers
 
             if (!await _userManager.IsEmailConfirmedAsync(user))
             {
-                var token =
-                    await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
 
                 var confirmationLink = Url.Action("ConfirmEmail", "Account",
                     new { userId = user.Id,token = token }, Request.Scheme);
