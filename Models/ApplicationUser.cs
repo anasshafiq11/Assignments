@@ -7,5 +7,6 @@ namespace Assignment2.Models
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
         public string? Address { get; set; }
+        public string? CreatedByAdminId { get; set; }
     }
 }

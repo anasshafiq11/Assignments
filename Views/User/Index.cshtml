@@ -1,0 +1,149 @@
+﻿@model Assignment2.ViewModels.UserListViewModel
+
+<h2>User Management</h2>
+
+<h2>Dependency Injection</h2>
+
+<table class="table table-bordered">
+    <tr>
+        <th>Singleton App Id</th>
+        <td>@ViewBag.ApplicationId</td>
+    </tr>
+
+    <tr>
+        <th>Application Start Time</th>
+        <td>@ViewBag.StartTime</td>
+    </tr>
+
+    <tr>
+        <th>Transient Request Id</th>
+        <td>@ViewBag.RequestId</td>
+    </tr>
+</table>
+
+
+@if (User.IsInRole("Admin"))
+{
+    <li class="nav-item">
+        <a class="btn btn-success mb-3"
+           asp-controller="Account"
+           asp-action="InviteUser">
+            Create User
+        </a>
+    </li>
+}
+
+<form method="get" class="row g-2 mb-3">
+
+    <div class="col-md-4">
+        <input type="text"
+               name="search"
+               value="@Model.Search"
+               class="form-control"
+               placeholder="Search by name or email" />
+    </div>
+
+    <div class="col-md-3">
+        <select name="sortOrder" class="form-select">
+            <option value="">Name Ascending</option>
+            <option value="name_desc"
+                    selected="@(Model.SortOrder == "name_desc")">
+                Name Descending
+            </option>
+            <option value="email"
+                    selected="@(Model.SortOrder == "email")">
+                Email Ascending
+            </option>
+            <option value="email_desc"
+                    selected="@(Model.SortOrder == "email_desc")">
+                Email Descending
+            </option>
+        </select>
+    </div>
+
+    <div class="col-md-3">
+        <select name="filter" class="form-select">
+            <option value="">All Users</option>
+            <option value="A">Names Starting With A</option>
+            <option value="B">Names Starting With B</option>
+            <option value="C">Names Starting With C</option>
+        </select>
+    </div>
+
+    <div class="col-md-2">
+        <button type="submit"
+                class="btn btn-primary w-100">
+            Search
+        </button>
+    </div>
+
+</form>
+<nav>
+    <ul class="pagination">
+
+        @for (int i = 1; i <= Model.TotalPages; i++)
+        {
+            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                <a class="page-link"
+                   asp-action="Index"
+                   asp-route-page="@i"
+                   asp-route-search="@Model.Search"
+                   asp-route-sortOrder="@Model.SortOrder">
+                    @i
+                </a>
+            </li>
+        }
+
+    </ul>
+
+</nav>
+
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Address</th>
+
+            @if (User.IsInRole("Admin"))
+            {
+                <th>Actions</th>
+            }
+        </tr>
+    </thead>
+
+    <tbody>
+        @foreach (var user in Model.Users)
+        {
+            <tr>
+                <td>@user.FirstName @user.LastName</td>
+                <td>@user.Email</td>
+                <td>@user.Address</td>
+
+                @if (User.IsInRole("Admin"))
+                {
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@user.Id"
+                           class="btn btn-warning btn-sm">Edit</a>
+
+                        <form asp-action="Delete"
+                              asp-route-id="@user.Id"
+                              method="post"
+                              style="display:inline">
+                            <button type="submit"
+                                    class="btn btn-danger btn-sm"
+                                    onclick="return confirm('Delete this user?')">
+                                Delete
+                            </button>
+                        </form>
+                    </td>
+                }
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div>
+    Page @Model.CurrentPage of @Model.TotalPages
+</div>

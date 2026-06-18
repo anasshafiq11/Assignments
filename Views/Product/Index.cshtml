@@ -4,24 +4,18 @@
     ViewData["Title"] = "Products";
 }
 
-<h2>Dependency Injection</h2>
 
-<table class="table table-bordered">
-    <tr>
-        <th>Singleton App Id</th>
-        <td>@ViewBag.ApplicationId</td>
-    </tr>
 
-    <tr>
-        <th>Application Start Time</th>
-        <td>@ViewBag.StartTime</td>
-    </tr>
-
-    <tr>
-        <th>Transient Request Id</th>
-        <td>@ViewBag.RequestId</td>
-    </tr>
-</table>
+@if (User.IsInRole("Admin"))
+{
+    <li class="nav-item">
+        <a class="btn btn-success mb-3"
+           asp-controller="Account"
+           asp-action="InviteUser">
+            Create User
+        </a>
+    </li>
+}
 
 <h2>Products</h2>
 

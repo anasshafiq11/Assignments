@@ -2,20 +2,11 @@
 
 namespace Assignment2.ViewModels
 {
-    public class RegisterViewModel
+    public class SetPasswordViewModel
     {
-        [Required]
-        public string FirstName { get; set; }
+        public string UserId { get; set; }
 
-        [Required]
-        public string LastName { get; set; }
-
-        [Required]
-        public string Address { get; set; }
-
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; }
+        public string Token { get; set; }
 
         [Required]
         [DataType(DataType.Password)]
