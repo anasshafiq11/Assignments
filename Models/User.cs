@@ -1,7 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace UsersApi.Models
 {
+    [Table("AppUsers")]
     public class User
     {
         public int Id { get; set; }
@@ -18,5 +21,10 @@ namespace UsersApi.Models
         [EmailAddress]
         [MaxLength(100)]
         public string Email { get; set; } = string.Empty;
+
+        [Required]
+        [DataType(DataType.Password)]
+        [StringLength(100)]
+        public string Password { get; set; } = string.Empty;
     }
 }

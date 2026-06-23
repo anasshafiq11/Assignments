@@ -1,74 +1,92 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using UsersApi.DTOs;
 using UsersApi.Models;
-using UsersApi.Repositories.Interfaces;
+using UsersApi.Services.Interfaces;
+using UsersApi.Common.Querying;
+using UsersApi.Common.Helpers;
 
 namespace UserApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    //[Authorize]
     public class UsersController : ControllerBase
     {
-        private readonly IUserRepository _userRepository;
+        private readonly IUserService _userService;
+        private readonly IMapper _mapper;
 
-        public UsersController(IUserRepository userRepository)
+        public UsersController(IUserService userService, IMapper mapper)
         {
-            _userRepository = userRepository;
+            _userService = userService;
+            _mapper = mapper;
         }
 
-        // Add New User
         [HttpPost]
+        [AllowAnonymous]
         public async Task<IActionResult> CreateUser(CreateUserDto userDto)
         {
-            var user = new User
-            {
-                FirstName = userDto.FirstName,
-                LastName = userDto.LastName,
-                Email = userDto.Email
-            };
-            await _userRepository.AddUserAsync(user);
-            return CreatedAtAction(nameof(GetUserById), new { id = user.Id }, user);
+            var user = _mapper.Map<User>(userDto);
 
+            var createdUser = await _userService.AddUserAsync(user);
+
+            var responseDto = _mapper.Map<UserResponseDto>(createdUser);
+
+            return CreatedAtAction(nameof(GetUserById), new { id = createdUser.Id },
+                ApiResponseHelper.Success(responseDto, "User created successfully"));
         }
 
-        // Get User By Id
+        [HttpGet]
+        public async Task<IActionResult> GetUsers([FromQuery] QueryOptions queryOptions)
+        {
+            var results = await _userService.GetAllUsersAsync(queryOptions);
+            return Ok(ApiResponseHelper.Success(results, "Users retrieved successfully"));
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetUserById(int id)
         {
-            var user = await _userRepository.GetUserAsync(id);
+            var user = await _userService.GetUserAsync(id);
+
             if (user == null)
-                return NotFound();
-            var response = new UserResponseDto
             {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Email = user.Email
-            };
-            return  Ok(response);
+                return NotFound(ApiResponseHelper.Failure<UserResponseDto>("User not found"));
+            }
+
+            var responseDto = _mapper.Map<UserResponseDto>(user);
+
+            return Ok(ApiResponseHelper.Success(responseDto, "User retrieved successfully"));
         }
 
-        // Update User By Id
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateUser(int id, UpdateUserDto updateUserDto)
         {
-            var user = new User
+            var user = _mapper.Map<User>(updateUserDto);
+
+            var updatedUser = await _userService.UpdateUserAsync(id, user);
+
+            if (updatedUser == null)
             {
-                FirstName = updateUserDto.FirstName,
-                LastName = updateUserDto.LastName,
-                Email = updateUserDto.Email
-            };
-            var updatedUser = await _userRepository.UpdateUserAsync(id, user);
-            return updatedUser == null ? NotFound() : Ok(updatedUser);
+                return NotFound(ApiResponseHelper.Failure<UserResponseDto>("User not found"));
+            }
+
+            var responseDto = _mapper.Map<UserResponseDto>(updatedUser);
+
+            return Ok(ApiResponseHelper.Success(responseDto, "User updated successfully"));
         }
 
-        // Delete User By Id
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(int id)
         {
-            var deletedUser = await _userRepository.DeleteUserAsync(id);
-            return deletedUser ? NoContent() : NotFound();
+            var userDeleted = await _userService.DeleteUserAsync(id);
+
+            if (userDeleted == false)
+            {
+                return NotFound(ApiResponseHelper.Failure<object>("User not found"));
+            }
+
+            return Ok(ApiResponseHelper.Success(true, "User deleted successfully"));
         }
     }
 }

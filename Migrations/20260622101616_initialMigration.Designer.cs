@@ -11,8 +11,8 @@ using UserApi.Data;
 namespace UsersApi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260615122701_addChecks")]
-    partial class addChecks
+    [Migration("20260622101616_initialMigration")]
+    partial class initialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -47,9 +47,14 @@ namespace UsersApi.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.HasKey("Id");
 
-                    b.ToTable("Users");
+                    b.ToTable("AppUsers");
                 });
 #pragma warning restore 612, 618
         }

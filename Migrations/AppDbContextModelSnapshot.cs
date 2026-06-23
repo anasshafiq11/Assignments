@@ -44,9 +44,14 @@ namespace UsersApi.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.HasKey("Id");
 
-                    b.ToTable("Users");
+                    b.ToTable("AppUsers");
                 });
 #pragma warning restore 612, 618
         }
