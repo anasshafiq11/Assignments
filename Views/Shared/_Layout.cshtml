@@ -44,11 +44,17 @@
                                 </span>
                             </li>
                             <li class="nav-item">
-                                <a asp-controller="Account"
-                                   asp-action="Logout"
-                                   class="nav-link text-dark">
-                                    Logout
-                                </a>
+                                <form asp-controller="Account"
+                                      asp-action="Logout"
+                                      method="post">
+
+                                    @Html.AntiForgeryToken()
+
+                                    <button type="submit"
+                                            class="nav-link btn btn-link border-0">
+                                        Logout
+                                    </button>
+                                </form>
                             </li>
                         }
                         else

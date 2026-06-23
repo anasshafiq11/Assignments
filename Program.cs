@@ -12,6 +12,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using UserManagement.Services.Interfaces;
+using UserManagement.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,14 +37,19 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
+builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+{
+    options.ValidationInterval = TimeSpan.Zero;
+});
 
-builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>)); // typeof is used to specify the open generic type, and the DI container will resolve the closed generic types at runtime when needed.
-builder.Services.AddScoped<IUserService, UserService>(); // it is resolved per HTTP request, meaning a new instance will be created for each request and shared within that request. This is ideal for services that interact with the database or maintain state that should not be shared across requests.
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>)); 
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<IProductService, ProductService>();
-builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddSingleton<IAppInfoService, AppInfoService>();
-builder.Services.AddTransient<IRequestTracker, RequestTracker>(); // it is created each time it is requested. This is suitable for lightweight, stateless services that do not maintain any shared state and can be instantiated multiple times without issues.
+builder.Services.AddTransient<IRequestTracker, RequestTracker>(); 
+builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
 builder.Services.AddEndpointsApiExplorer();
@@ -67,15 +74,11 @@ builder.Services
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
 
-                ValidIssuer =
-                    builder.Configuration["Jwt:Issuer"],
+                ValidIssuer = builder.Configuration["Jwt:Issuer"],
 
-                ValidAudience =
-                    builder.Configuration["Jwt:Audience"],
+                ValidAudience = builder.Configuration["Jwt:Audience"],
 
-                IssuerSigningKey =
-                    new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
                             builder.Configuration["Jwt:Key"]!))
             };
     });
@@ -96,15 +99,18 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseRouting();
 
+
+// Since application startup is outside any HTTP request, there is no scope yet.
+
 using (var scope = app.Services.CreateScope())
 {
     await RoleSeeder.SeedRolesAsync(scope.ServiceProvider);
 }
+//app.Services.CreateScope() creates a new dependency injection scope outside an HTTP request. This allows scoped services such as ApplicationDbContext, UserManager, and RoleManager to be resolved safely during application startup. The scope is disposed automatically after use, ensuring proper cleanup of resources.
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseMiddleware<ValidateUserMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
 
 

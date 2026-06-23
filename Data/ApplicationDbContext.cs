@@ -11,6 +11,5 @@ namespace Assignment2.Data
         {
         }
 
-        public DbSet<Product> Products { get; set; }
     }
 }

@@ -1,94 +1,134 @@
-﻿using Assignment2.Models;
+﻿using Assignment2.Common.Querying;
+using Assignment2.Models;
 using Assignment2.Repositories.Interfaces;
 using Assignment2.Services.Interfaces;
+using AutoMapper;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using UserManagement.DTOs.User;
+using UserManagement.Services.Interfaces;
 
 namespace Assignment2.Services
 {
     public class UserService : IUserService
     {
-        private readonly IGenericRepository<ApplicationUser> _genericRepository;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly ICurrentUserService _currentUser;
+        private readonly IGenericRepository<ApplicationUser> _repository;
+        private readonly IMapper _mapper;
 
-        public UserService(IGenericRepository<ApplicationUser> genericRepository)
+        public UserService(
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
+            ICurrentUserService currentUser,
+            IGenericRepository<ApplicationUser> repository,
+            IMapper mapper)
         {
-            _genericRepository = genericRepository;
+            _userManager = userManager;
+            _signInManager = signInManager;
+            _currentUser = currentUser;
+            _repository = repository;
+            _mapper = mapper;
         }
 
+        
 
-        public async Task<(List<ApplicationUser>, int)> GetUsersAsync(string currentUserId, bool isAdmin, string? search,string? sortOrder, string? filter,int pageNumber,int pageSize)
+        public async Task<UserListDto> GetUsersAsync(QueryOptions queryOptions)
         {
-            var query = _genericRepository.Query();
+            var users = await _repository.GetPagedAndFilteredAsync(queryOptions);
 
-            if (isAdmin)
+            return new UserListDto
             {
-                // Admin sees only users he created
-                query = query.Where(x => x.CreatedByAdminId == currentUserId);
-            } 
-            else
-            {
-                // User sees users created by same admin
-                var currentUser = await _genericRepository.Query().FirstOrDefaultAsync(x => x.Id == currentUserId);
+                Users = _mapper.Map<List<UserDto>>(users),
 
-                if (currentUser != null)
-                {
-                    query = query.Where(x => x.CreatedByAdminId == currentUser.CreatedByAdminId);
-                }
-            }
-            //query = query.Where(x => x.PasswordHash != null); // Exclude users without a password
-            if (!string.IsNullOrWhiteSpace(search))
+                Search = queryOptions.FilterExpression,
+
+                SortOrder = queryOptions.OrderByExpression,
+
+                CurrentPage = (queryOptions.Skip / queryOptions.Take) + 1,
+
+                TotalPages = (int)Math.Ceiling((double)users.Count / queryOptions.Take)
+            };
+        }
+        public async Task<UserDto?> GetUserByIdAsync(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+
+            return user == null ? null : _mapper.Map<UserDto>(user);
+        }
+
+        public async Task CreateUserAsync(UserDto userDto)
+        {
+            var user = _mapper.Map<ApplicationUser>(userDto);
+            await _repository.AddAsync(user);
+        }
+
+        public async Task<IdentityResult> UpdateUserAsync(UpdateUserDto dto)
+        {
+            var user =  await _userManager.FindByIdAsync(dto.Id);
+
+            if (user == null)
             {
-                query = query.Where(x =>
-                    x.FirstName!.Contains(search) ||
-                    x.LastName!.Contains(search) ||
-                    x.Email!.Contains(search));
+                return IdentityResult.Failed(
+                    new IdentityError { Description = "User not found." });
             }
-            if (!string.IsNullOrEmpty(filter))
+
+            _mapper.Map(dto, user);
+
+            user.UserName = user.Email;
+
+            return await _userManager.UpdateAsync(user);
+        }
+
+        public async Task<DeleteUserResultDto> DeleteUserAsync(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+
+            if (user == null)
             {
-                query = filter switch
+                return new DeleteUserResultDto
+                { Succeeded = false, ErrorMessage = "User not found." };
+            }
+
+            if (user.CreatedByAdminId != _currentUser.UserId)
+            {
+                return new DeleteUserResultDto
                 {
-                    "A" => query.Where(x => x.FirstName!.StartsWith("A")),
-                    "B" => query.Where(x => x.FirstName!.StartsWith("B")),
-                    "C" => query.Where(x => x.FirstName!.StartsWith("C")),
-                    _ => query
+                    Succeeded = false,
+                    ErrorMessage = "You can only delete users created by you."
                 };
             }
-            query = sortOrder switch
+
+            await _userManager.UpdateSecurityStampAsync(user);
+
+            bool selfDeleted = user.Id == _currentUser.UserId;
+
+            if (selfDeleted)
             {
-                "name_desc" => query.OrderByDescending(x => x.FirstName),
-                "email" => query.OrderBy(x => x.Email),
-                "email_desc" => query.OrderByDescending(x => x.Email),
-                _ => query.OrderBy(x => x.FirstName)
-            };
-            var totalUsers = await query.CountAsync();
-
-            var users = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
-
-            return (users, totalUsers);
-        }
-        public async Task<ApplicationUser?> GetUserByIdAsync(string id)
-        {
-            return await _genericRepository.GetByIdAsync(id);
-        }
-
-        public async Task CreateUserAsync(ApplicationUser user)
-        {
-            await _genericRepository.AddAsync(user);
-        }
-
-        public async Task UpdateUserAsync(ApplicationUser user)
-        {
-            await _genericRepository.UpdateAsync(user);
-        }
-
-        public async Task DeleteUserAsync(string id)
-        {
-            var user = await _genericRepository.GetByIdAsync(id);
-
-            if (user != null)
-            {
-                await _genericRepository.DeleteAsync(user);
+                await _signInManager.SignOutAsync();
             }
+
+            var result = await _userManager.DeleteAsync(user);
+
+            if (!result.Succeeded)
+            {
+                return new DeleteUserResultDto
+                {
+                    Succeeded = false,
+                    ErrorMessage = string.Join(
+                        ", ",
+                        result.Errors.Select(e => e.Description))
+                };
+            }
+
+            return new DeleteUserResultDto
+            {
+                Succeeded = true,
+                SelfDeleted = selfDeleted
+            };
         }
 
     };
 }
+

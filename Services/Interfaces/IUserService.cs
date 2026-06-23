@@ -1,18 +1,19 @@
-﻿using Assignment2.Models;
+﻿using Assignment2.Common.Querying;
+using Assignment2.Models;
+using Assignment2.ViewModels;
+using Microsoft.AspNetCore.Identity;
+using UserManagement.DTOs.User;
 
 namespace Assignment2.Services.Interfaces
 {
     public interface IUserService
     {
-        
-        Task<(List<ApplicationUser>, int)> GetUsersAsync(string currentUserId, bool isAdmin, string? search, string? sortOrder, string? filter, int pageNumber, int pageSize);
 
-        Task<ApplicationUser?> GetUserByIdAsync(string id);
+        Task<UserListDto> GetUsersAsync(QueryOptions queryOptions);
+        Task<UserDto?> GetUserByIdAsync(string id);
+        Task<IdentityResult> UpdateUserAsync(UpdateUserDto dto);
+        Task CreateUserAsync(UserDto user);
+        Task<DeleteUserResultDto> DeleteUserAsync(string id);
 
-        Task CreateUserAsync(ApplicationUser user);
-
-        Task UpdateUserAsync(ApplicationUser user);
-
-        Task DeleteUserAsync(string id);
     }
 }

@@ -1,274 +1,196 @@
 ﻿using Assignment2.Models;
-using Assignment2.Services;
-using Assignment2.Services.Interfaces;
 using Assignment2.ViewModels;
 using AutoMapper;
-using Azure.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using UserManagement.Common.Constants.Auth;
+using UserManagement.Common.Helpers;
+using UserManagement.DTOs.Account;
+using UserManagement.Services.Interfaces;
 
 namespace Assignment2.Controllers
 {
+    [Authorize]
     public class AccountController : Controller
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly IJwtService _jwtService;
-        private readonly IEmailService _emailService;
+        private readonly IAccountService _accountService;
+        private readonly ICurrentUserService _currentUserService;
         private readonly IMapper _mapper;
-        public AccountController(
-            UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager,
-            IJwtService jwtService,
-            IEmailService emailService,
-            IMapper mapper)
+
+        public AccountController(IAccountService accountService, UserManager<ApplicationUser> userManager, ICurrentUserService currentUserService, IMapper mapper)
         {
-            _userManager = userManager;
-            _signInManager = signInManager;
-            _jwtService = jwtService;
-            _emailService = emailService;
+            _accountService = accountService;
+            _currentUserService = currentUserService;
             _mapper = mapper;
         }
 
-        // GET: Account/Register
+
+        [AllowAnonymous]
+        [HttpGet]
         public IActionResult Register()
         {
             return View();
         }
 
-        // POST: Account/Register
+        [AllowAnonymous]
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
             if (!ModelState.IsValid)
                 return View(model);
 
-            var user = _mapper.Map<ApplicationUser>(model);
+            var registerDto = _mapper.Map<RegisterDto>(model);
 
-            var result = await _userManager.CreateAsync(user, model.Password);
+            var result = await _accountService.RegisterAsync(registerDto);
 
-            if (result.Succeeded)
+            if (!result.Succeeded)
             {
-                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-
-                await _userManager.AddToRoleAsync(user, "Admin");
-
-                var confirmationLink = Url.Action("ConfirmEmail","Account",
-                    new { userId = user.Id, token = token }, Request.Scheme);
-
-                TempData["ConfirmationLink"] = confirmationLink;
-
-                return RedirectToAction(nameof(RegistrationSuccess));
+                result.AddToModelState(ModelState);
+                return View(model);
             }
 
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError("", error.Description);
-            }
-
-            return View(model);
+            return RedirectToAction(nameof(RegistrationSuccess));
         }
+
+        [AllowAnonymous]
+        [HttpGet]
         public IActionResult RegistrationSuccess()
         {
             return View();
         }
+
+       
+
+        [AllowAnonymous]
         [HttpGet]
-        public async Task<IActionResult> ConfirmEmail(string userId,string token)
-        {
-            if (userId == null || token == null)
-            {
-                return View("Error");
-            }
-
-            var user = await _userManager.FindByIdAsync(userId);
-
-            if (user == null)
-            {
-                return View("Error");
-            }
-
-            var result = await _userManager.ConfirmEmailAsync(user, token);
-
-            if (result.Succeeded)
-            {
-                return View();
-            }
-
-            return View("Error");
-        }
-        // GET: Account/Login
         public IActionResult Login()
         {
             return View();
         }
 
-        // POST: Account/Login
+        [AllowAnonymous]
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
             if (!ModelState.IsValid)
                 return View(model);
 
-            var user = await _userManager.FindByEmailAsync(model.Email);
+            var loginDto = _mapper.Map<LoginDto>(model);
 
-            if (user == null)
+            var result = await _accountService.LoginAsync(loginDto);
+
+            if (!result.Succeeded)
             {
-                ModelState.AddModelError("", "Invalid Login");
+                ModelState.AddModelError("", "Invalid login attempt.");
                 return View(model);
             }
 
-            if (!await _userManager.IsEmailConfirmedAsync(user))
-            {
-                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-
-                var confirmationLink = Url.Action("ConfirmEmail", "Account",
-                    new { userId = user.Id,token = token }, Request.Scheme);
-
-                TempData["ConfirmationLink"] = confirmationLink;
-
-                return RedirectToAction(nameof(RegistrationSuccess));
-            }
-
-            var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, false, false);
-
-            if (result.Succeeded)
-            {
-                return RedirectToAction("Index", "User");
-            }
-
-            ModelState.AddModelError("", "Invalid Login Attempt");
-
-            return View(model);
+            return RedirectToAction("Index", "User");
         }
-        // GET: Account/Logout
+
+        
+
+        [AllowAnonymous]
+        [HttpGet]
+        public async Task<IActionResult> ConfirmEmail(string userId, string token)
+        {
+            try
+            {
+                await _accountService.ConfirmEmailAsync(userId, token);
+                return View();
+            }
+            catch
+            {
+                return View("Error");
+            }
+        }
+
+        
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
-            await _signInManager.SignOutAsync();
+            await _accountService.LogoutAsync();
 
-            return RedirectToAction("Login", "Account");
-        }
-        public async Task<IActionResult> GenerateToken(LoginViewModel model)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-            var user = await _userManager.FindByEmailAsync(model.Email);
-            if (user == null || !await _userManager.CheckPasswordAsync(user, model.Password))
-            {
-                return Unauthorized();
-            }
-            var token = await _jwtService.GenerateTokenAsync(user);
-            return Ok(new { Token = token });
-        }
-        public IActionResult AccessDenied()
-        {
-            return View();
+            return RedirectToAction(nameof(Login));
         }
 
+       
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         [HttpGet]
         public IActionResult InviteUser()
         {
             return View();
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> InviteUser(InviteUserViewModel model)
         {
             if (!ModelState.IsValid)
                 return View(model);
 
-            var existingUser = await _userManager.FindByEmailAsync(model.Email);
+            var dto = _mapper.Map<InviteUserDto>(model);
 
-            if (existingUser != null)
-            {
-                ModelState.AddModelError("", "A user with this email already exists.");
-                return View(model);
-            }
-            var adminId = _userManager.GetUserId(User);
+            dto.AdminId = _currentUserService.UserId!;
 
-           
-            var user = _mapper.Map<ApplicationUser>(model);
-            user.UserName = user.Email;
-            user.EmailConfirmed = true;
-            user.CreatedByAdminId = adminId;
+            var result =  await _accountService.InviteUserAsync(dto);
 
-            var result = await _userManager.CreateAsync(user);
-            await _userManager.AddToRoleAsync(user, "User");
             if (!result.Succeeded)
             {
-                foreach (var error in result.Errors)
-                    ModelState.AddModelError("", error.Description);
-
+                result.AddToModelState(ModelState);
                 return View(model);
             }
 
-            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-
-            var link = Url.Action("SetPassword", "Account", new { userId = user.Id, token = token }, Request.Scheme);
-
-            try
-            {
-                await _emailService.SendEmailAsync(user.Email,"Account Invitation",
-                    $"Please click <a href='{link}'>here</a> to set your password.");
-
-                TempData["Success"] = "User created and invitation email sent.";
-            }
-            catch (Exception ex)
-            {
-                TempData["Error"] = ex.Message;
-            }
+            TempData["Success"] = "Invitation email sent successfully.";
 
             return RedirectToAction(nameof(InviteUser));
         }
 
+
         [AllowAnonymous]
         [HttpGet]
-        public async Task<IActionResult> SetPassword(string userId, string token)
+        public IActionResult SetPassword(string userId, string token)
         {
-            var user = await _userManager.FindByIdAsync(userId);
-
-            if (user == null)
-            {
-                return NotFound();
-            }
-            if (await _userManager.HasPasswordAsync(user))
-            {
-                return RedirectToAction("Login", "Account");
-            }
-            return View(new SetPasswordViewModel { UserId = userId, Token = token });
+            return View(new SetPasswordViewModel{ UserId = userId, Token = token });
         }
+
         [AllowAnonymous]
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> SetPassword(SetPasswordViewModel model)
         {
             if (!ModelState.IsValid)
                 return View(model);
 
-            var user = await _userManager.FindByIdAsync(model.UserId);
+            var setPasswordDto = _mapper.Map<SetPasswordDto>(model);
 
-            if (user == null)
-                return View("Error");
+            var result = await _accountService.SetPasswordAsync(setPasswordDto);
 
-            var result = await _userManager.ResetPasswordAsync(user, model.Token, model.Password);
-
-            if (result.Succeeded)
+            if (!result.Succeeded)
             {
-                if (!await _userManager.IsInRoleAsync(user, "User"))
-                {
-                    await _userManager.AddToRoleAsync(user, "User");
-                }
-                return RedirectToAction("Login", "Account");
+                result.AddToModelState(ModelState);
+                return View(model);
             }
 
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError("", error.Description);
-            }
+            TempData["Success"] = "Password set successfully.";
 
-            return View(model);
+            return RedirectToAction(nameof(Login));
         }
+
+
+        [AllowAnonymous]
+        [HttpGet]
+        public IActionResult AccessDenied()
+        {
+            return View();
+        }
+
     }
 }
