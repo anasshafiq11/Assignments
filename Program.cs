@@ -6,7 +6,6 @@ using System.Text;
 using UserApi.Data;
 using UsersApi.Common.Helpers;
 using UsersApi.Mapping;
-using UsersApi.Middleware;
 using UsersApi.Repositories;
 using UsersApi.Repositories.Interfaces;
 using UsersApi.Services;
@@ -61,7 +60,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
@@ -71,8 +69,6 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
-
-app.UseMiddleware<GlobalExceptionMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

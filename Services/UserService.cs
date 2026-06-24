@@ -10,39 +10,39 @@ namespace UsersApi.Services
 {
     public class UserService : IUserService
     {
-        private readonly IUserRepository _userRepository;
+        private readonly IGenericRepository<User> _repository;
 
-        public UserService(IUserRepository userRepository)
+        public UserService(IGenericRepository<User> repository)
         {
-            _userRepository = userRepository;
+            _repository = repository;
         }
 
         public async Task<List<User>> GetAllUsersAsync(QueryOptions queryOptions)
         {
-            return await _userRepository.GetPagedAndFilteredAsync(queryOptions);
+            return await _repository.GetPagedAndFilteredAsync(queryOptions);
         }
         public async Task<User?> GetUserAsync(int id)
         {
-            return await _userRepository.GetByIdAsync(id);
+            return await _repository.GetByIdAsync(id);
         }
 
         public async Task<User> AddUserAsync(User user)
         {
-            return await _userRepository.AddAsync(user);
+            return await _repository.AddAsync(user);
         }
 
         public async Task<User?> UpdateUserAsync(int id, User user)
         {
-            return await _userRepository.UpdateAsync(id, user);
+            return await _repository.UpdateAsync(id, user);
         }
 
         public async Task<bool> DeleteUserAsync(int id)
         {
-            return await _userRepository.DeleteAsync(id);
+            return await _repository.DeleteAsync(id);
         }
         public async Task<User?> GetUserByEmailAsync(string email)
         {
-            return await _userRepository.GetUserByEmailAsync(email);
+            return await _repository.GetAsync(u => u.Email == email);
         }
     }
 }

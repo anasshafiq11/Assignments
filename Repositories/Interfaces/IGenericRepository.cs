@@ -1,4 +1,5 @@
 ﻿using Gridify;
+using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using UsersApi.Common;
 using UsersApi.Common.Querying;
@@ -11,6 +12,7 @@ namespace UsersApi.Repositories.Interfaces
         Task<T> AddAsync(T entity);
         Task<T?> UpdateAsync(int id, T entity);
         Task<T?> GetByIdAsync(int id);
+        Task<T?> GetAsync(Expression<Func<T, bool>> predicate);
         Task<bool> DeleteAsync(int id);
     }
 }

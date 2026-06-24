@@ -1,18 +1,19 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UsersApi.Common.Helpers;
+using UsersApi.Common.Querying;
+using UsersApi.Controllers;
 using UsersApi.DTOs;
 using UsersApi.Models;
 using UsersApi.Services.Interfaces;
-using UsersApi.Common.Querying;
-using UsersApi.Common.Helpers;
 
 namespace UserApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //[Authorize]
-    public class UsersController : ControllerBase
+    [Authorize]
+    public class UsersController : BaseApiController
     {
         private readonly IUserService _userService;
         private readonly IMapper _mapper;
@@ -33,15 +34,15 @@ namespace UserApi.Controllers
 
             var responseDto = _mapper.Map<UserResponseDto>(createdUser);
 
-            return CreatedAtAction(nameof(GetUserById), new { id = createdUser.Id },
-                ApiResponseHelper.Success(responseDto, "User created successfully"));
+            return CreatedResponse(nameof(GetUserById), new { id = createdUser.Id },
+                responseDto, "User created successfully");
         }
 
         [HttpGet]
         public async Task<IActionResult> GetUsers([FromQuery] QueryOptions queryOptions)
         {
             var results = await _userService.GetAllUsersAsync(queryOptions);
-            return Ok(ApiResponseHelper.Success(results, "Users retrieved successfully"));
+            return Success(results, "Users retrieved successfully");
         }
 
         [HttpGet("{id}")]
@@ -51,12 +52,12 @@ namespace UserApi.Controllers
 
             if (user == null)
             {
-                return NotFound(ApiResponseHelper.Failure<UserResponseDto>("User not found"));
+                return NotFoundResponse("User not found");
             }
 
             var responseDto = _mapper.Map<UserResponseDto>(user);
 
-            return Ok(ApiResponseHelper.Success(responseDto, "User retrieved successfully"));
+            return Success(responseDto, "User retrieved successfully");
         }
 
         [HttpPut("{id}")]
@@ -68,12 +69,12 @@ namespace UserApi.Controllers
 
             if (updatedUser == null)
             {
-                return NotFound(ApiResponseHelper.Failure<UserResponseDto>("User not found"));
+                return NotFoundResponse("User not found");
             }
 
             var responseDto = _mapper.Map<UserResponseDto>(updatedUser);
 
-            return Ok(ApiResponseHelper.Success(responseDto, "User updated successfully"));
+            return Success(responseDto, "User updated successfully");
         }
 
         [HttpDelete("{id}")]
@@ -83,10 +84,10 @@ namespace UserApi.Controllers
 
             if (userDeleted == false)
             {
-                return NotFound(ApiResponseHelper.Failure<object>("User not found"));
+                return NotFoundResponse("User not found");
             }
 
-            return Ok(ApiResponseHelper.Success(true, "User deleted successfully"));
+            return Success(true, "User deleted successfully");
         }
     }
 }
