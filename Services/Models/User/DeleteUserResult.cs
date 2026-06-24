@@ -1,6 +1,6 @@
-﻿namespace UserManagement.DTOs.User
+﻿namespace UserManagement.Services.Models.User
 {
-    public class DeleteUserResultDto
+    public class DeleteUserResult
     {
         public bool Succeeded { get; set; }
 

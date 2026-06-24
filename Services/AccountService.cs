@@ -6,8 +6,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using System.Text;
 using UserManagement.Common.Constants.Auth;
-using UserManagement.DTOs.Account;
+using UserManagement.Common.Results;
 using UserManagement.Services.Interfaces;
+using UserManagement.Services.Models.Account;
 
 namespace UserManagement.Services
 {
@@ -19,12 +20,9 @@ namespace UserManagement.Services
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public AccountService(
-            UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager,
-            IEmailService emailService,
-            IMapper mapper,
-            IHttpContextAccessor httpContextAccessor)
+        public AccountService(UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,IEmailService emailService,
+            IMapper mapper, IHttpContextAccessor httpContextAccessor)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -33,113 +31,120 @@ namespace UserManagement.Services
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<IdentityResult> RegisterAsync(RegisterDto dto)
+        public async Task<OperationResult> RegisterAsync(Register model)
         {
-            var user = _mapper.Map<ApplicationUser>(dto);
+            var user = _mapper.Map<ApplicationUser>(model);
 
-            var result = await _userManager.CreateAsync(
-                user,
-                dto.Password);
+            var result = await _userManager.CreateAsync(user, model.Password);
 
             if (!result.Succeeded)
-                return result;
+            {
+                return OperationResult.Failure(
+                    result.Errors.Select(e => e.Description).ToArray());
+            }
 
-            await _userManager.AddToRoleAsync(
-                user,
-                Roles.User);
+            await _userManager.AddToRoleAsync(user, Roles.Admin);
 
-            return result;
+            return OperationResult.Success("Registration successful.");
         }
 
-        public async Task<SignInResult> LoginAsync(LoginDto dto)
+        public async Task<OperationResult> LoginAsync(Login model)
         {
-            return await _signInManager.PasswordSignInAsync(
-                dto.Email,
-                dto.Password,
-                false,
-                true);
+            var result = await _signInManager.PasswordSignInAsync(model.Email,
+                model.Password, false, true);
+
+            if (result.Succeeded)
+                return OperationResult.Success();
+
+            return OperationResult.Failure("Invalid email or password.");
         }
 
-        public async Task<(bool Success, string? Link)>GenerateConfirmationLinkAsync(string email)
+        public async Task<OperationResult<string?>> GenerateConfirmationLinkAsync(string email)
         {
             var user = await _userManager.FindByEmailAsync(email);
 
             if (user == null)
-                return (false, null);
+                return OperationResult<string?>.Failure("User not found");
 
-            var token =
-                await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
 
             token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
             var request = _httpContextAccessor.HttpContext!.Request;
 
-            var link =
-                $"{request.Scheme}://{request.Host}/Account/ConfirmEmail?userId={user.Id}&token={token}";
+            var link = $"{request.Scheme}://{request.Host}/Account/ConfirmEmail?userId={user.Id}&token={token}";
 
-            return (true, link);
+            return OperationResult<string?>.Success(link);
         }
 
-        public async Task ConfirmEmailAsync(string userId, string token)
+        public async Task<OperationResult> ConfirmEmailAsync(string userId, string token)
         {
             var user = await _userManager.FindByIdAsync(userId);
 
             if (user == null)
-                throw new Exception("User not found");
+                return OperationResult.Failure("User not found");
 
             token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
 
             await _userManager.ConfirmEmailAsync(user, token);
+            return OperationResult.Success("Email confirmed.");
         }
 
-        public async Task<IdentityResult> InviteUserAsync(
-     InviteUserDto dto)
+        public async Task<OperationResult> InviteUserAsync(InviteUser model)
         {
-            var user = _mapper.Map<ApplicationUser>(dto);
+            var user = _mapper.Map<ApplicationUser>(model);
 
-            user.UserName = dto.Email;
+            user.UserName = model.Email;
             user.EmailConfirmed = true;
-            user.CreatedByAdminId = dto.AdminId;
+            user.CreatedByAdminId = model.AdminId;
 
-            var result =
-                await _userManager.CreateAsync(user);
+            var result = await _userManager.CreateAsync(user);
 
             if (!result.Succeeded)
-                return result;
+            {
+                return OperationResult.Failure(
+                    result.Errors.Select(e => e.Description).ToArray());
+            }
 
-            await _userManager.AddToRoleAsync(
-                user,
-                Roles.User);
+            await _userManager.AddToRoleAsync(user, Roles.User);
 
-            var token =
-                await _userManager.GeneratePasswordResetTokenAsync(user);
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
-            token = WebEncoders.Base64UrlEncode(
-                Encoding.UTF8.GetBytes(token));
+            token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
-            var request =
-                _httpContextAccessor.HttpContext!.Request;
+            var request = _httpContextAccessor.HttpContext!.Request;
 
-            var link =
-                $"{request.Scheme}://{request.Host}/Account/SetPassword?userId={user.Id}&token={token}";
+            var link = $"{request.Scheme}://{request.Host}/Account/SetPassword?userId={user.Id}&token={token}";
 
-            await _emailService.SendEmailAsync(
-                user.Email!,
-                "Account Invitation",
-                $"Please click <a href='{link}'>here</a> to set your password.");
+            EmailMessage emailMessage = new EmailMessage { 
+                ToEmail = user.Email, 
+                Subject = "Account Invitation",
+                Body = $"""Please click <a href="{link}">here</a> to set your password."""
+            };
 
-            return result;
+            await _emailService.SendEmailAsync(emailMessage);
+
+            return OperationResult.Success("Registration successful.");
         }
-        public async Task<IdentityResult> SetPasswordAsync(SetPasswordDto model)
+        public async Task<OperationResult> SetPasswordAsync(SetPassword model)
         {
             var user = await _userManager.FindByIdAsync(model.UserId);
 
             if (user == null)
-                return IdentityResult.Failed(new IdentityError { Description = "User not found" });
+                return OperationResult.Failure("User not found");
 
             var token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(model.Token));
 
-            return await _userManager.ResetPasswordAsync(user, token, model.Password);
+            var result = await _userManager.ResetPasswordAsync(user, token, model.Password);
+
+            if (!result.Succeeded)
+            {
+                return OperationResult.Failure(
+                    result.Errors.Select(e => e.Description).ToArray());
+            }
+
+            return OperationResult.Success("Password set successfully.");
         }
 
         public async Task LogoutAsync()

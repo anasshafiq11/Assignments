@@ -1,20 +1,22 @@
 ﻿using Assignment2.ViewModels;
 using Microsoft.AspNetCore.Identity;
-using UserManagement.DTOs.Account;
+using UserManagement.Common.Results;
+using UserManagement.Services.Models.Account;
 
 namespace UserManagement.Services.Interfaces
 {
     public interface IAccountService
     {
-        Task<IdentityResult> RegisterAsync(RegisterDto dto);
+        Task<OperationResult> RegisterAsync(Register model);
 
-        Task<SignInResult> LoginAsync(LoginDto dto);
+        Task<OperationResult> LoginAsync(Login model);
 
-        Task ConfirmEmailAsync(string userId, string token);
+        Task<OperationResult> ConfirmEmailAsync(string userId, string token);
+        Task<OperationResult<string?>> GenerateConfirmationLinkAsync(string email);
 
-        Task<IdentityResult> InviteUserAsync(InviteUserDto dto);
+        Task<OperationResult> InviteUserAsync(InviteUser model);
 
-        Task<IdentityResult> SetPasswordAsync(SetPasswordDto dto);
+        Task<OperationResult> SetPasswordAsync(SetPassword model);
 
         Task LogoutAsync();
     }

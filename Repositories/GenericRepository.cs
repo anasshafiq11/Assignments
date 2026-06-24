@@ -22,21 +22,29 @@ namespace Assignment2.Repositories
         {
             IQueryable<T> query = _dbSet;
 
-            if (!string.IsNullOrWhiteSpace(queryOptions.FilterExpression) && QueryValidator.IsValidFilterExpression<T>(queryOptions.FilterExpression))
+            if (!string.IsNullOrWhiteSpace(queryOptions.FilterExpression))
             {
-
-                query = query.Where(queryOptions.FilterExpression, queryOptions.Parameters);
+                try
+                {
+                    query = query.Where(queryOptions.FilterExpression, queryOptions.Parameters);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"Invalid filter expression: {ex.Message}");
+                }
             }
 
-            if (!string.IsNullOrWhiteSpace(queryOptions.OrderByExpression) && QueryValidator.IsValidProperty<T>(queryOptions.OrderByExpression))
+            if (!string.IsNullOrWhiteSpace(queryOptions.OrderByExpression))
             {
-                query = query.OrderBy(queryOptions.OrderByExpression);
+                try
+                {
+                    query = query.OrderBy(queryOptions.OrderByExpression);
+                }
+                catch (Exception)
+                {
+                    query = query.OrderBy("Id");
+                }
             }
-            else
-            {
-                query = query.OrderBy("Id");
-            }
-
             return await query.Skip(queryOptions.Skip).Take(queryOptions.Take).ToListAsync();
         }
 

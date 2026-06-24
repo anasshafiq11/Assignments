@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Mail;
+using UserManagement.Services.Models.Account;
 
 namespace Assignment2.Services
 {
@@ -15,31 +16,31 @@ namespace Assignment2.Services
         }
 
 
-        public async Task SendEmailAsync(string toEmail, string subject, string body)
+        public async Task SendEmailAsync(EmailMessage emailMessage)
         {
-            //Console.WriteLine($"Email: {_emailSettings.Email}");
-            //Console.WriteLine($"Password Length: {_emailSettings.Password?.Length}");
-            //Console.WriteLine($"Host: {_emailSettings.Host}");
-            //Console.WriteLine($"Port: {_emailSettings.Port}");
-            //Console.WriteLine($"SSL: {_emailSettings.EnableSsl}");
+            try
+            {
 
-            using var message = new MailMessage();
+                using var message = new MailMessage();
 
-            message.From = new MailAddress(_emailSettings.Email);
-            message.To.Add(toEmail);
-            message.Subject = subject;
-            message.Body = body;
-            message.IsBodyHtml = true;
+                message.From = new MailAddress(_emailSettings.Email);
+                message.To.Add(emailMessage.ToEmail);
+                message.Subject = emailMessage.Subject;
+                message.Body = emailMessage.Body;
+                message.IsBodyHtml = true;
 
-            using var smtpClient = new SmtpClient(_emailSettings.Host, _emailSettings.Port);
+                using var smtpClient = new SmtpClient(_emailSettings.Host, _emailSettings.Port);
+                smtpClient.UseDefaultCredentials = false;
 
-            smtpClient.UseDefaultCredentials = false; // tells .NET not to use your local computer's Windows login data.
+                smtpClient.Credentials = new NetworkCredential(_emailSettings.Email, _emailSettings.Password);
 
-            smtpClient.Credentials = new NetworkCredential(_emailSettings.Email, _emailSettings.Password);
-
-            smtpClient.EnableSsl = _emailSettings.EnableSsl;
-
-            await smtpClient.SendMailAsync(message);
+                smtpClient.EnableSsl = _emailSettings.EnableSsl;
+                await smtpClient.SendMailAsync(message);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Email not sent: {ex.Message}");
+            }
         }
-    }
+}
 }

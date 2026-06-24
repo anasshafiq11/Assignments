@@ -8,33 +8,10 @@
     <h2>User Management</h2>
     <hr />
 
-    <div class="card mb-4 bg-light">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="card-title mb-0" style="font-size: 1.1rem;">Dependency Injection Diagnostics</h5>
-        </div>
-        <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-                <tbody>
-                    <tr>
-                        <th scope="row" class="w-25 ps-3">Singleton App Id</th>
-                        <td class="text-monospace">@ViewBag.ApplicationId</td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="ps-3">Application Start Time</th>
-                        <td>@ViewBag.StartTime</td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="ps-3">Transient Request Id</th>
-                        <td class="text-monospace">@ViewBag.RequestId</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
 
     @if (User.IsInRole("Admin"))
     {
-        <div class="mb-3 text-end">
+        <div class="mb-3 text-start">
             <a class="btn btn-success"
                asp-controller="Account"
                asp-action="InviteUser">
@@ -61,7 +38,7 @@
                            name="OrderByExpression"
                            value="@Model.SortOrder"
                            class="form-control"
-                           placeholder="e.g., FirstName descending" />
+                           placeholder="e.g., FirstName desc, Email asc" />
                 </div>
 
                 <div class="col-md-2">

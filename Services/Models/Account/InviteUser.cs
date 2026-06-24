@@ -1,6 +1,6 @@
-﻿namespace UserManagement.DTOs.Account
+﻿namespace UserManagement.Services.Models.Account
 {
-    public class InviteUserDto
+    public class InviteUser
     {
         public string Email { get; set; }
 

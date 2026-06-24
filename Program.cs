@@ -14,6 +14,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using UserManagement.Services.Interfaces;
 using UserManagement.Services;
+using UserManagement.Services.Models.Account;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -45,8 +46,6 @@ builder.Services.Configure<SecurityStampValidatorOptions>(options =>
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>)); 
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddSingleton<IAppInfoService, AppInfoService>();
-builder.Services.AddTransient<IRequestTracker, RequestTracker>(); 
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddHttpContextAccessor();

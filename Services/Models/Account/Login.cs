@@ -1,6 +1,6 @@
-﻿namespace UserManagement.DTOs.Account
+﻿namespace UserManagement.Services.Models.Account
 {
-    public class LoginDto
+    public class Login
     {
         public string Email { get; set; } = null!;
 

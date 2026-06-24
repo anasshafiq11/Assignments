@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace UserManagement.DTOs.Account
+namespace UserManagement.Services.Models.Account
 {
-    public class SetPasswordDto
+    public class SetPassword
     {
         public string UserId { get; set; }
 

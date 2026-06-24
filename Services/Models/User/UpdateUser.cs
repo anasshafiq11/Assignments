@@ -1,6 +1,6 @@
-﻿namespace UserManagement.DTOs.User
+﻿namespace UserManagement.Services.Models.User
 {
-    public class UpdateUserDto
+    public class UpdateUser
     {
         public string Id { get; set; } = null!;
         public string FirstName { get; set; } = null!;

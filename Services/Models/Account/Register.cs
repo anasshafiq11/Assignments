@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace UserManagement.DTOs.Account
+namespace UserManagement.Services.Models.Account
 {
-    public class RegisterDto
+    public class Register
     {
         public string FirstName { get; set; }
 

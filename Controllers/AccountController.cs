@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using UserManagement.Common.Constants.Auth;
 using UserManagement.Common.Helpers;
-using UserManagement.DTOs.Account;
 using UserManagement.Services.Interfaces;
+using UserManagement.Services.Models.Account;
 
 namespace Assignment2.Controllers
 {
@@ -18,7 +18,7 @@ namespace Assignment2.Controllers
         private readonly ICurrentUserService _currentUserService;
         private readonly IMapper _mapper;
 
-        public AccountController(IAccountService accountService, UserManager<ApplicationUser> userManager, ICurrentUserService currentUserService, IMapper mapper)
+        public AccountController(IAccountService accountService, ICurrentUserService currentUserService, IMapper mapper)
         {
             _accountService = accountService;
             _currentUserService = currentUserService;
@@ -41,14 +41,21 @@ namespace Assignment2.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            var registerDto = _mapper.Map<RegisterDto>(model);
+            var registerUser = _mapper.Map<Register>(model);
 
-            var result = await _accountService.RegisterAsync(registerDto);
+            var result = await _accountService.RegisterAsync(registerUser);
 
             if (!result.Succeeded)
             {
                 result.AddToModelState(ModelState);
                 return View(model);
+            }
+
+            var linkResult = await _accountService.GenerateConfirmationLinkAsync(model.Email);
+
+            if (linkResult.Succeeded)
+            {
+                TempData["ConfirmationLink"] = linkResult.Data;
             }
 
             return RedirectToAction(nameof(RegistrationSuccess));
@@ -78,37 +85,29 @@ namespace Assignment2.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            var loginDto = _mapper.Map<LoginDto>(model);
+            var loginUser = _mapper.Map<Login>(model);
 
-            var result = await _accountService.LoginAsync(loginDto);
+            var result = await _accountService.LoginAsync(loginUser);
 
             if (!result.Succeeded)
             {
-                ModelState.AddModelError("", "Invalid login attempt.");
+                result.AddToModelState(ModelState);
                 return View(model);
             }
 
             return RedirectToAction("Index", "User");
         }
 
-        
 
         [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> ConfirmEmail(string userId, string token)
         {
-            try
-            {
-                await _accountService.ConfirmEmailAsync(userId, token);
-                return View();
-            }
-            catch
-            {
-                return View("Error");
-            }
+            await _accountService.ConfirmEmailAsync(userId, token);
+            return View();
         }
 
-        
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -136,11 +135,11 @@ namespace Assignment2.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            var dto = _mapper.Map<InviteUserDto>(model);
+            var dto = _mapper.Map<InviteUser>(model);
 
             dto.AdminId = _currentUserService.UserId!;
 
-            var result =  await _accountService.InviteUserAsync(dto);
+            var result = await _accountService.InviteUserAsync(dto);
 
             if (!result.Succeeded)
             {
@@ -148,7 +147,7 @@ namespace Assignment2.Controllers
                 return View(model);
             }
 
-            TempData["Success"] = "Invitation email sent successfully.";
+            TempData["Success"] = result.Message;
 
             return RedirectToAction(nameof(InviteUser));
         }
@@ -160,7 +159,6 @@ namespace Assignment2.Controllers
         {
             return View(new SetPasswordViewModel{ UserId = userId, Token = token });
         }
-
         [AllowAnonymous]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -169,9 +167,9 @@ namespace Assignment2.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            var setPasswordDto = _mapper.Map<SetPasswordDto>(model);
+            var dto = _mapper.Map<SetPassword>(model);
 
-            var result = await _accountService.SetPasswordAsync(setPasswordDto);
+            var result = await _accountService.SetPasswordAsync(dto);
 
             if (!result.Succeeded)
             {
@@ -179,7 +177,7 @@ namespace Assignment2.Controllers
                 return View(model);
             }
 
-            TempData["Success"] = "Password set successfully.";
+            TempData["Success"] = result.Message;
 
             return RedirectToAction(nameof(Login));
         }

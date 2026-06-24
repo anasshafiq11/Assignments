@@ -2,8 +2,8 @@
 using Assignment2.Models;
 using Assignment2.ViewModels;
 using AutoMapper;
-using UserManagement.DTOs.Account;
-using UserManagement.DTOs.User;
+using UserManagement.Services.Models.Account;
+using UserManagement.Services.Models.User;
 
 namespace Assignment2.Mapping
 {
@@ -11,10 +11,7 @@ namespace Assignment2.Mapping
     {
         public AutoMapperProfile()
         {
-            // =========================
-            // Entity <-> ViewModel
-            // =========================
-
+            
             CreateMap<RegisterViewModel, ApplicationUser>()
                 .ForMember(dest => dest.UserName,
                     opt => opt.MapFrom(src => src.Email));
@@ -27,56 +24,37 @@ namespace Assignment2.Mapping
 
             CreateMap<ApplicationUser, UserViewModel>();
 
+            CreateMap<RegisterViewModel, Register>();
 
-            // =========================
-            // ViewModel -> DTO
-            // =========================
+            CreateMap<LoginViewModel, Login>();
 
-            CreateMap<RegisterViewModel, RegisterDto>();
+            CreateMap<InviteUserViewModel, InviteUser>();
 
-            CreateMap<LoginViewModel, LoginDto>();
+            CreateMap<SetPasswordViewModel, SetPassword>();
 
-            CreateMap<InviteUserViewModel, InviteUserDto>();
-
-            CreateMap<SetPasswordViewModel, SetPasswordDto>();
-
-            CreateMap<UserViewModel, UpdateUserDto>();
+            CreateMap<UserViewModel, UpdateUser>();
 
 
-            // =========================
-            // DTO -> Entity
-            // =========================
-
-            CreateMap<RegisterDto, ApplicationUser>()
+            CreateMap<Register, ApplicationUser>()
                 .ForMember(dest => dest.UserName,
                     opt => opt.MapFrom(src => src.Email));
 
-            CreateMap<InviteUserDto, ApplicationUser>();
+            CreateMap<InviteUser, ApplicationUser>();
 
-            CreateMap<UpdateUserDto, ApplicationUser>();
-
-
-            // =========================
-            // Entity -> DTO
-            // =========================
-
-            CreateMap<ApplicationUser, UserDto>();
+            CreateMap<UpdateUser, ApplicationUser>();
+            CreateMap<ApplicationUser, User>();
 
 
            
 
-            CreateMap<UserDto, UserViewModel>();
+            CreateMap<User, UserViewModel>();
 
-            CreateMap<UserListDto, UserListViewModel>();
+            CreateMap<UserList, UserListViewModel>();
 
 
-            // =========================
-            // Optional Reverse Maps
-            // =========================
+            CreateMap<UserViewModel, User>();
 
-            CreateMap<UserViewModel, UserDto>();
-
-            CreateMap<UserListViewModel, UserListDto>();
+            CreateMap<UserListViewModel, UserList>();
         }
     }
 }

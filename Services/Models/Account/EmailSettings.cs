@@ -1,4 +1,4 @@
-﻿namespace Assignment2.Services
+﻿namespace UserManagement.Services.Models.Account
 {
     // This class is used to hold the email settings for the application. It is used to configure the email service.
     public class EmailSettings

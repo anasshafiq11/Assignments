@@ -6,6 +6,6 @@
         public string OrderByExpression { get; set; } = string.Empty;
         public int Skip { get; set; }
         public int Take { get; set; } = 10;
-        public object[] Parameters { get; set; } = Array.Empty<object>();
+        public string[] Parameters { get; set; } = [];
     }
 }

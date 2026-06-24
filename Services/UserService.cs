@@ -5,8 +5,10 @@ using Assignment2.Services.Interfaces;
 using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using UserManagement.DTOs.User;
+using UserManagement.Common.Results;
 using UserManagement.Services.Interfaces;
+using UserManagement.Services.Models.User;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxTokenParser;
 
 namespace Assignment2.Services
 {
@@ -34,13 +36,13 @@ namespace Assignment2.Services
 
         
 
-        public async Task<UserListDto> GetUsersAsync(QueryOptions queryOptions)
+        public async Task<OperationResult<UserList>> GetUsersAsync(QueryOptions queryOptions)
         {
             var users = await _repository.GetPagedAndFilteredAsync(queryOptions);
-
-            return new UserListDto
+            users = users.Where(u => u.CreatedByAdminId == _currentUser.UserId).ToList();
+            var result = new UserList
             {
-                Users = _mapper.Map<List<UserDto>>(users),
+                Users = _mapper.Map<List<User>>(users),
 
                 Search = queryOptions.FilterExpression,
 
@@ -50,61 +52,67 @@ namespace Assignment2.Services
 
                 TotalPages = (int)Math.Ceiling((double)users.Count / queryOptions.Take)
             };
+            return OperationResult<UserList>.Success(result);
         }
-        public async Task<UserDto?> GetUserByIdAsync(string id)
+        public async Task<OperationResult<User>> GetUserByIdAsync(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
 
-            return user == null ? null : _mapper.Map<UserDto>(user);
+            if (user == null)
+            {
+                return OperationResult<User>.Failure("User not found.");
+            }
+
+            return OperationResult<User>.Success(_mapper.Map<User>(user));
         }
 
-        public async Task CreateUserAsync(UserDto userDto)
+        public async Task<OperationResult> CreateUserAsync(User user)
         {
-            var user = _mapper.Map<ApplicationUser>(userDto);
-            await _repository.AddAsync(user);
+            var appUser = _mapper.Map<ApplicationUser>(user);
+            await _repository.AddAsync(appUser);
+            return OperationResult.Success("User created successfully");
         }
 
-        public async Task<IdentityResult> UpdateUserAsync(UpdateUserDto dto)
+        public async Task<OperationResult<User>> UpdateUserAsync(UpdateUser dto)
         {
-            var user =  await _userManager.FindByIdAsync(dto.Id);
+            var user = await _userManager.FindByIdAsync(dto.Id);
 
             if (user == null)
             {
-                return IdentityResult.Failed(
-                    new IdentityError { Description = "User not found." });
+                return OperationResult<User>.Failure("User not found.");
             }
 
             _mapper.Map(dto, user);
-
             user.UserName = user.Email;
+            var result = await _userManager.UpdateAsync(user);
 
-            return await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                return OperationResult<User>.Failure(result.Errors
+                        .Select(x => x.Description).ToArray());
+            }
+
+            return OperationResult<User>.Success(
+                _mapper.Map<User>(user), "User updated successfully.");
         }
 
-        public async Task<DeleteUserResultDto> DeleteUserAsync(string id)
+        public async Task<OperationResult> DeleteUserAsync(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
 
             if (user == null)
             {
-                return new DeleteUserResultDto
-                { Succeeded = false, ErrorMessage = "User not found." };
+                return OperationResult.Failure("User not found.");
             }
 
             if (user.CreatedByAdminId != _currentUser.UserId)
             {
-                return new DeleteUserResultDto
-                {
-                    Succeeded = false,
-                    ErrorMessage = "You can only delete users created by you."
-                };
+                return OperationResult.Failure("You can only delete users created by you.");
             }
 
             await _userManager.UpdateSecurityStampAsync(user);
 
-            bool selfDeleted = user.Id == _currentUser.UserId;
-
-            if (selfDeleted)
+            if (user.Id == _currentUser.UserId)
             {
                 await _signInManager.SignOutAsync();
             }
@@ -113,20 +121,10 @@ namespace Assignment2.Services
 
             if (!result.Succeeded)
             {
-                return new DeleteUserResultDto
-                {
-                    Succeeded = false,
-                    ErrorMessage = string.Join(
-                        ", ",
-                        result.Errors.Select(e => e.Description))
-                };
+                return OperationResult.Failure(result.Errors.Select(e => e.Description).ToArray());
             }
 
-            return new DeleteUserResultDto
-            {
-                Succeeded = true,
-                SelfDeleted = selfDeleted
-            };
+            return OperationResult.Success("User deleted successfully.");
         }
 
     };

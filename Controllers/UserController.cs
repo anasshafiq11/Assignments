@@ -5,7 +5,8 @@ using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UserManagement.Common.Constants.Auth;
-using UserManagement.DTOs.User;
+using UserManagement.Common.Helpers;
+using UserManagement.Services.Models.User;
 
 namespace Assignment2.Controllers
 {
@@ -13,29 +14,25 @@ namespace Assignment2.Controllers
     public class UserController : Controller
     {
         private readonly IUserService _userService;
-        private readonly IAppInfoService _appInfo;
-        private readonly IRequestTracker _requestTracker;
         private readonly IMapper _mapper;
 
-        public UserController(IUserService userService,IAppInfoService appInfo,
-            IRequestTracker requestTracker, IMapper mapper)
+        public UserController(IUserService userService, IMapper mapper)
         {
             _userService = userService;
-            _appInfo = appInfo;
-            _requestTracker = requestTracker;
             _mapper = mapper;
         }
 
         [HttpGet]
         public async Task<IActionResult> Index(QueryOptions queryOptions)
         {
-            ViewBag.ApplicationId = _appInfo.ApplicationId;
-            ViewBag.StartTime = _appInfo.StartTime;
-            ViewBag.RequestId = _requestTracker.RequestId;
+            var result = await _userService.GetUsersAsync(queryOptions);
 
-            var dto = await _userService.GetUsersAsync(queryOptions);
+            if (!result.Succeeded)
+            {
+                return View(new UserListViewModel());
+            }
 
-            var model = _mapper.Map<UserListViewModel>(dto);
+            var model = _mapper.Map<UserListViewModel>(result.Data);
 
             return View(model);
         }
@@ -44,12 +41,12 @@ namespace Assignment2.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(string id)
         {
-            var dto = await _userService.GetUserByIdAsync(id);
-
-            if (dto == null)
+            var result = await _userService.GetUserByIdAsync(id);
+            if (!result.Succeeded)
+            {
                 return NotFound();
-
-            var model = _mapper.Map<UserViewModel>(dto);
+            }
+            var model = _mapper.Map<UserViewModel>(result.Data);
 
             return View(model);
         }
@@ -62,21 +59,17 @@ namespace Assignment2.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            var dto = _mapper.Map<UpdateUserDto>(model);
+            var dto = _mapper.Map<UpdateUser>(model);
 
             var result = await _userService.UpdateUserAsync(dto);
 
             if (!result.Succeeded)
             {
-                foreach (var error in result.Errors)
-                {
-                    ModelState.AddModelError(string.Empty, error.Description);
-                }
-
+                result.AddToModelState(ModelState);
                 return View(model);
             }
 
-            TempData["Success"] = "User updated successfully.";
+            TempData["Success"] = result.Message;
 
             return RedirectToAction(nameof(Index));
         }
@@ -90,17 +83,11 @@ namespace Assignment2.Controllers
 
             if (!result.Succeeded)
             {
-                TempData["Error"] = result.ErrorMessage;
-
+             //   TempData["Error"] = string.Join(", ", result.Errors);
                 return RedirectToAction(nameof(Index));
             }
 
-            TempData["Success"] = "User deleted successfully.";
-
-            if (result.SelfDeleted)
-            {
-                return RedirectToAction("Login", "Account");
-            }
+            TempData["Success"] = result.Message;
 
             return RedirectToAction(nameof(Index));
         }
